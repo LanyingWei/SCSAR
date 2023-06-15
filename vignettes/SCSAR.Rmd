@@ -1,0 +1,195 @@
+---
+title: "An Introduction to SCSAR"
+author: "Lanying Wei"
+package: "SCSAR"
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc_float: true
+bibliography: references.bib
+vignette: >
+  %\VignetteIndexEntry{An Introduction to SCSAR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    error = TRUE,
+    warning = TRUE,
+    message = TRUE,
+    comment = "#>",
+    crop = NULL,
+    out.width = "100%"
+)
+```
+
+# Introduction
+
+SCSAR is an R package specifically designed to facilitate the process of 
+cell-type annotation for single-cell RNA-seq data analysis. It takes differential gene expression information for each cell cluster as input. Leveraging the 
+comprehensive cell type marker gene data available in the 
+[CellMarker 2.0](http://bio-bigdata.hrbmu.edu.cn/CellMarker/) and 
+[Cell Taxonomy](https://ngdc.cncb.ac.cn/celltaxonomy/) databases, SCSAR employs 
+a scoring algorithm to accurately and reliably assign cell-type annotations.
+
+The Python version of SCSAR is [SCSA](https://github.com/bioinfo-ibms-pumc/SCSA) [@pmid32477414]. Compared to 
+SCSA, SCSAR further includes Cell Taxonomy
+as the marker gene resource, and enhances the scoring scheme by introducing a 
+penalty system that penalizes cell types containing marker genes that are not 
+overexpressed in the given cluster. This refinement leads to improved accuracy 
+in cell-type identification. In addition, SCSAR provides the user with the top 
+scoring markers for each cluster, enabling them to verify the results. Finally, 
+SCSAR is more user-friendly for researchers performing single-cell sequencing 
+analysis in R. Users no longer need to switch to Python for cell-type 
+annotation, simplifying the workflow.
+
+
+
+Regarding the two databases used, the CellMarker 2.0 provides detailed information on tissue class, tissue types, and cell states (cancer or normal). This allows users to refine these parameters based on their sample information, narrowing down the search for cell types and generating more accurate results. You can use the function `showCellMarkerTissue` to explore the supported tissue classes and cell types. On the other hand, the Cell Taxonomy database does not have a separate column for tissue information. Therefore, it does not support the refinement of tissue types during annotation. However, it is worth noting that CellMarker 2.0 currently only supports human and mouse data, while Cell Taxonomy contains data for 34 different species. To view the available species and the corresponding number of annotated cell types, you can use the function `showCellTaxoSpecies`. Users can choose the appropriate database based on their specific research question.
+
+
+
+# Installation
+
+
+Install the SCSAR package from the github:
+
+```{r install, eval=FALSE}
+if (!requireNamespace("remotes", quietly=TRUE))
+    install.packages("remotes")
+remotes::install_github("weilanying/SCSAR")
+```
+
+
+# Cell-type annotation example
+
+## Prepare data
+
+To begin, we need to load the library and an exemplar dataset called pbmc3kDEGs. 
+The pbmc3kDEGs dataset is a data frame that contains information about 
+differentially expressed genes (DEGs) for each cluster in the peripheral 
+blood mononuclear cell (PBMC) dataset. This dataset comprises 3k PBMCs from a Healthy 
+Donor and can be freely obtained from 
+[10x Genomics](https://www.10xgenomics.com/resources/datasets/3-k-pbm-cs-from-a-healthy-donor-1-standard-1-0-0).
+
+The identification of DEGs in the dataset was performed using normalization, 
+clustering, and differential gene expression analyses through the Seurat 4.1 R 
+package. Specifically, the marker genes for each cell cluster (i.e., the DEGs 
+specific to a particular cluster) were identified by comparing the cells within 
+that cluster to all other cells using the Seurat 'FindMarkers' function.
+
+The pbmc3kDEGs data frame consists of four columns: "cluster" to denote the 
+cluster identifier, "gene" to represent the gene symbol, "p_val" for the 
+p-values of differential expression, and "avg_log2FC" indicating the average 
+log2 fold change in gene expression levels. When using the SCSAR package, it is 
+required to provide a data frame with the same column names and structure as 
+pbmc3kDEGs as input. One can use adjusted p-values instead of raw p-values for 
+filtering DEGs, but the column name should be kept as "p_val". This consistency 
+in column names is required when working with the SCSAR package.
+
+
+```{r prepare data}
+library(SCSAR)
+# get expression data
+data("pbmc3kDEGs")
+# get sample information
+head(pbmc3kDEGs)
+```
+
+## Cell-type annotation based on the CellMarker 2.0 database
+
+We start by running the `showCellMarkerTissue` function to 
+retrieve the available tissue classes and types. This function presents a 
+searchable table that displays tissue information and the associated species 
+from the CellMarker 2.0 database. Upon searching for "blood" in the search
+box, we find the relevant tissue class "Blood" and the corresponding tissue type 
+"Peripheral blood." These values will be used as input for the 
+"tissueClass" and "tissueType" parameters when running the annotation function.
+
+
+
+```{r}
+# calculate differential co-expression matrix
+showCellMarkerTissue()
+
+```
+
+Now we can run the `cellMarkerAnno` function for annotation. Users 
+can also specify the value of the "outFile" parameter so that an xlsx file 
+containing the annotation results will be saved.
+
+
+```{r}
+cellMarkerRes <- cellMarkerAnno(clusterDEGs = pbmc3kDEGs, 
+                                species = "human", 
+                                tissueClass = "Blood",
+                                tissueType = "Peripheral blood",
+                                cutoffLFC = 0.585,
+                                panelty = 0.1)
+
+head(cellMarkerRes)
+```
+
+All available parameters of the `cellMarkerAnno` function are listed below:
+
+| Parameter         | Description                                                                                                                                                                                                                           |
+|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| species           | A character vector specifying the species to consider. Currently, it supports "human" and "mouse". Use "all" to include all species.                                                                                                 |
+| tissueClass       | A character vector specifying the broad tissue classes to consider (case insensitive). Default is "all" that includes all tissue classes. To explore the available tissue classes, use the `showCellMarkerTissue()` function.     |
+| tissueType        | A character vector specifying the specific tissue types to consider within the chosen tissue class (case insensitive). Default is "all" that includes all tissue types. "tissueType" represents the specific subtypes within "tissueClass". To explore the available tissue types, use the `showCellMarkerTissue()` function.   |
+| cellState         | A character vector specifying the cell states to consider. Valid options are "normal" and "cancer". Default is both.                                                                                                                  |
+| markerSource      | A character vector specifying the marker gene sources to consider. Valid options are "experiment", "review", "single-cell sequencing", and "company". Default is all.                                                                 |
+| outFile           | The path where the xlsx file containing the annotation results will be saved.                                                                                                                                                         |
+| clusters          | A character vector specifying the clusters to analyze. By default, all clusters are considered (set to "all").                                                                                                                       |
+| cutoffLFC         | The log fold change cutoff value for the column "avg_log2FC" in the `clusterDEGs` data frame. Only cell type marker genes with an average log fold change greater than or equal to this value are considered as supporting evidence for the corresponding cell type. Default is 1, which corresponds to a two-fold change in average. |
+| cutoffPval        | The p-value cutoff for the column "p_val" in the `clusterDEGs` data frame. Only cell type marker genes with a p-value less than or equal to this value are considered as supporting evidence for the corresponding cell type. Default is 0.05.                                                   |
+| topCell           | The maximum number of top-ranked cell types to report. Default is 5.                                                                                                                                                                 |
+| topMarker         | The maximum number of top-ranked marker genes contributing to the cell type annotation to report for each cell type. Default is 5.                                                                                                    |
+| penalty           | The penalty weight assigned to cell type marker genes that are not a detected marker of the cluster. A "detected marker" means that the gene meets both the cutoffPval and penaltyCutoffLFC thresholds. A higher absolute value of the penalty means a more severe punishment for cell types with some of the marker genes that are not overexpressed in the cluster. The default value is -0.1.                         |
+| penaltyCutoffLFC  | The log fold change cutoff value for including genes in the penalty calculation. Cell types with marker genes having an average log fold change less than this value are penalized. The default value is the same as "cutoffLFC". The value of "penaltyCutoffLFC" should be less than or equal to "cutoffLFC".                                                      |
+
+
+
+
+
+## Cell-type annotation based on the Cell Taxonomy database
+
+To explore the supported species in Cell Taxonomy, users can run the 
+`showCellTaxoSpecies` function to retrieve the available species and 
+the number of corresponding cell types. It's important to note that only 12 out 
+of the 34 species have more than 10 documented cell types with associated cell 
+markers. For species with a limited number of available cell types, it is 
+crucial to exercise caution as the annotation results may be misleading.
+
+
+```{r}
+# calculate differential co-expression matrix
+showCellTaxoSpecies()
+```
+
+Next, we run the `cellTaxoAnno` function for annotation. The available 
+parameters are the same as `cellMarkerAnno`, except that `cellTaxoAnno' does not have the tissueClass and tissueType parameters.
+
+
+
+```{r}
+cellTaxoRes <- cellTaxoAnno(clusterDEGs = pbmc3kDEGs, 
+                                species = "homo sapiens", 
+                                cutoffLFC = 0.585)
+
+head(cellTaxoRes)
+```
+
+
+# Session info {.unnumbered}
+
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```
+
+# References {.unnumbered}
+
+

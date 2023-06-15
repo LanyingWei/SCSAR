@@ -1,0 +1,23 @@
+Package: SCSAR
+Title: Cell-type annotation for single-cell RNA-seq data based on marker genes
+Version: 0.99.0
+Authors@R: 
+    person("Lanying", "Wei", email="lanying.v@gmail.com",
+    role = c("aut", "cre"), comment = c(ORCID = "0000-0002-4281-8017"))
+Description: SCSAR is an R package designed to facilitate cell-type annotation for single-cell RNA-seq data. It takes as input the information on differential gene expression for each cell cluster. Leveraging cell type marker gene information from the CellMarker 2.0 and Cell Taxonomy databases, SCSAR employs scoring algorithms to identify and assign the most accurate and reliable cell-type annotations. 
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.2
+Depends: 
+    R (>= 4.2.0)
+Imports: 
+    stats,
+    DT,
+    dplyr,
+    openxlsx,
+    tidyr
+VignetteBuilder: knitr
+Suggests: BiocStyle, knitr, rmarkdown
+biocViews: Software, SingleCell, Annotation, GeneExpression, Sequencing, DifferentialExpression
+LazyData: false

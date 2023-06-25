@@ -112,7 +112,7 @@ box, we find the relevant tissue class "Blood" and the corresponding tissue type
 
 
 ```{r}
-# calculate differential co-expression matrix
+# display tissue information and the associated species for CellMarker 2.0
 showCellMarkerTissue()
 
 ```
@@ -166,7 +166,7 @@ crucial to exercise caution as the annotation results may be misleading.
 
 
 ```{r}
-# calculate differential co-expression matrix
+# show available species for Cell Taxonomy
 showCellTaxoSpecies()
 ```
 

@@ -40,7 +40,7 @@ cellMarkerAnno(
 
 \item{markerSource}{A character vector specifying the marker gene sources to consider. Valid options are "experiment", "review", "single-cell sequencing", and "company". Default is all.}
 
-\item{outFile}{The path where the xlsx file containing the annotation results will be saved.}
+\item{outFile}{The path where the xlsx file containing the annotation results will be saved. For example, path = "directory/results.xlsx".}
 
 \item{clusters}{A character vector specifying the clusters to analyze. By default, all clusters are considered (set to "all").}
 

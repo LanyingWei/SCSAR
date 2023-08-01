@@ -2,18 +2,18 @@
 % Please edit documentation in R/saveCellTypeRes.R
 \name{saveCellTypeRes}
 \alias{saveCellTypeRes}
-\title{Save Cell Type Annotation Results}
+\title{Save Cell Type Results}
 \usage{
 saveCellTypeRes(cellTypeRes, path)
 }
 \arguments{
 \item{cellTypeRes}{A list containing the annotation results for each cell cluster.}
 
-\item{path}{The path where the Excel file will be saved.}
+\item{path}{The path where the Excel file will be saved. For example, path = "directory/results.xlsx".}
 }
 \value{
 None
 }
 \description{
-This function saves the cell type annotation results for each cluster to an Excel file.
+This function saves the cell type results to an Excel file.
 }
